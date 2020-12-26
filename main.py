@@ -1,4 +1,11 @@
 import pygame
+from pygame.constants import GL_RED_SIZE
+
+
+def ASTAR(search):
+    print("grid: ")
+    for s in search:
+        print(s)
 
 
 def main():
@@ -52,6 +59,7 @@ def main():
                 grid[row][column] = 2
                 path = grid
                 print("End ", pos, "Grid coordinates: ", row, column)
+            # Make draggable
             elif event.type == pygame.MOUSEBUTTONDOWN and count >= 2:
                 count += 1
                 # User clicks the mouse. Get the position
@@ -60,11 +68,13 @@ def main():
                 column = pos[0] // (WIDTH + MARGIN)
                 row = pos[1] // (HEIGHT + MARGIN)
                 # Set that location to one
-                grid[row][column] = 1
+                if grid[row][column] == 0:
+                    grid[row][column] = 1
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                ASTAR(grid)
 
         # Set the screen background
         screen.fill(BLACK)
-
         # Draw the grid
         for row in range(50):
             for column in range(50):
@@ -82,7 +92,6 @@ def main():
 
         # Limit to 60 frames per second
         clock.tick(60)
-
         # Go ahead and update the screen with what we've drawn.
         pygame.display.flip()
 
