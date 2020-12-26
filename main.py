@@ -26,6 +26,7 @@ def main():
     pygame.display.set_caption("Grid")
     done = False
     clock = pygame.time.Clock()
+    Clicked = False
     while not done:
         for event in pygame.event.get():  # User did something
             if event.type == pygame.QUIT:  # If user clicked close
@@ -54,13 +55,12 @@ def main():
             elif event.type == pygame.MOUSEBUTTONDOWN and count >= 2:
                 count += 1
                 # User clicks the mouse. Get the position
-                pos = pygame.mouse.get_pos()
+                pos = (pygame.mouse.get_pos())
                 # Change the x/y screen coordinates to grid coordinates
                 column = pos[0] // (WIDTH + MARGIN)
                 row = pos[1] // (HEIGHT + MARGIN)
                 # Set that location to one
                 grid[row][column] = 1
-                print("Clicked ", pos, "Grid coordinates: ", row, column)
 
         # Set the screen background
         screen.fill(BLACK)
