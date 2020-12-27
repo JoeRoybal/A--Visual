@@ -1,86 +1,90 @@
 import pygame
+import numpy as np
 
 
 class Node:
-    def __init__(self, value, point):
-        self.value = value
-        self.point = point
-        self.parent = None
-        self.H = 0
-        self.G = 0
+    def __init__(self, parent=None, position=None):
+        self.position = position
+        self.parent = parent
+        self.h = 0
+        self.g = 0
+        self.f = 0
 
-    def move_cost(self, other):
-        return 0 if self.value == '.' else 1
-
-
-def children(point, grid):
-    x, y = point.point
-    links = [grid[d[0]][d[1]]
-             for d in [(x-1, y), (x, y - 1), (x, y + 1), (x+1, y)]]
-    return [link for link in links if link.value != '%']
+    def __eq__(self, other):
+        return self.position == other.position
 
 
-def manhattan(point, point2):
-    return abs(point.point[0] - point2.point[0]) + abs(point.point[1]-point2.point[0])
+def return_path(current_node, maze):
+    path = []
+    no_rows, no_columns = np.shape(maze)
+    result = [[-1 for i in range(no_columns)]for j in range(no_rows)]
+    current = current_node
+    while current is not None:
+        path.append(current.position)
+        current = current.parent
+    path = path[::-1]
+    start_value = 0
+    for i in range(len(path)):
+        result[path[i][0]][path[i][1]] = start_value
+        start_value += 1
+    return result
 
 
-def aStar(start, goal, grid):
-    openset = set()
-    closedset = set()
-    current = start
-    openset.add(current)
-    while openset:
-        # Find the item in the open set with the lowest G + H score
-        current = min(openset, key=lambda o: o.G + o.H)
-        # If it is the item we want, retrace the path and return it
-        if current == goal:
-            path = []
-            while current.parent:
-                path.append(current)
-                current = current.parent
-            path.append(current)
-            return path[::-1]
-        # Remove the item from the open set
-        openset.remove(current)
-        # Add it to the closed set
-        closedset.add(current)
-        # Loop through the node's children/siblings
-        for node in children(current, grid):
-            # If it is already in the closed set, skip it
-            if node in closedset:
+def search(maze, cost, start, end):
+    start_node = Node(None, tuple(start))
+    start_node.g = start_node.h = start_node.f = 0
+    end_node = Node(None, tuple(end))
+    end_node.g = end_node.h = end_node.f = 0
+    to_visit = []
+    visited = []
+    to_visit.append(start_node)
+    outer_iterations = 0
+    max_iterations = (len(maze)//2)**10
+    move = [[-1, 0], [0, -1], [1, 0][0, 1]]
+    no_rows, no_columns = np.shape(maze)
+
+    while len(to_visit) > 0:
+        outer_iterations += 1
+        current_node = to_visit[0]
+        current_index = 0
+        for index, item in enumerate(to_visit):
+            if item.f < current_node.f:
+                current_node = item
+                current_index = index
+        if outer_iterations > max_iterations:
+            print("too many iterations")
+            return return_path(current_node, maze)
+        to_visit.pop(current_index)
+        visited.append(current_node)
+        if current_node == end_node:
+            return return_path(current_node, maze)
+        children = []
+        for new_position in move:
+            node_position = (
+                current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+            if (node_position[0] > (no_rows - 1) or
+                node_position[0] < 0 or
+                node_position[1] > (no_columns - 1) or
+                    node_position[1] < 0):
                 continue
-            # Otherwise if it is already in the open set
-            if node in openset:
-                # Check if we beat the G score
-                new_g = current.G + current.move_cost(node)
-                if node.G > new_g:
-                    # If so, update the node to have a new parent
-                    node.G = new_g
-                    node.parent = current
-            else:
-                # If it isn't in the open set, calculate the G and H score for the node
-                node.G = current.G + current.move_cost(node)
-                node.H = manhattan(node, goal)
-                # Set the parent to our current item
-                node.parent = current
-                # Add it to the set
-                openset.add(node)
-    # Throw an exception if there is no path
-    raise ValueError('No Path Found')
 
+            if maze[node_position[0]][node_position[1]] != 0:
+                continue
+            new_node = Node(current_node, node_position)
+            children.append(new_node)
+        for child in children:
+            if len([visited_child for visited_child in visited if visited_child == child]) > 0:
+                continue
 
-def next_move(pacman, food, grid):
-    # Convert all the points to instances of Node
-    for x in xrange(len(grid)):
-        for y in xrange(len(grid[x])):
-            grid[x][y] = Node(grid[x][y], (x, y))
-    # Get the path
-    path = aStar(grid[pacman[0]][pacman[1]], grid[food[0]][food[1]], grid)
-    # Output the path
-    print(len(path) - 1)
-    for node in path:
-        x, y = node.point
-        print(x, y)
+            child.g = current_node.g + cost
+            child.h = (((child.position[0] - end_node.position[0]) ** 2) +
+                       ((child.position[1] - end_node.position[1]) ** 2))
+
+            child.f = child.g + child.h
+
+            if len([i for i in to_visit if child == i and child.g > i.g]) > 0:
+                continue
+            to_visit.append(child)
 
 
 def main():
@@ -149,7 +153,8 @@ def main():
                 if grid[row][column] == 0:
                     grid[row][column] = 1
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                aStar(START, END, grid)
+                path = search(grid, 1, START, END)
+                print(path)
         # Set the screen background
         screen.fill(BLACK)
         # Draw the grid
